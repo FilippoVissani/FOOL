@@ -6,8 +6,11 @@ public class ExecuteVM {
     
     private int[] code;
     private int[] memory = new int[MEMSIZE];
-    
+
+    // PUNTA ALL'ISTRUZIONE DA ESEGUIRE (CODE)
     private int ip = 0;
+    // STACK POINTER, PUNTA AL TOP DELLO STACK (MEMORY)
+    // LO STACK VIENE MEMORIZZATO A PARTIRE DALL'INDIRIZZO PIÙ ALTO DELLA MEMORIA
     private int sp = MEMSIZE;
     
     private int hp = 0;       
@@ -21,7 +24,7 @@ public class ExecuteVM {
     
     public void cpu() {
       while ( true ) {
-        int bytecode = code[ip++]; // fetch
+        int bytecode = code[ip++]; // FETCH DELL'ISTRUZIONE DA ESEGUIRE
         int v1,v2;
         int address;
         switch ( bytecode ) {
