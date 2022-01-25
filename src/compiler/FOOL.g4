@@ -24,7 +24,14 @@ dec : VAR ID COLON type ASS exp SEMIC  #vardec
 // # STABILISCE IL NOME DELLA PRODUZIONE.
 exp     : exp TIMES exp #times
         | exp PLUS  exp #plus
-        | exp EQ  exp   #eq 
+        | exp MINUS  exp #minus
+        | exp DIV  exp #div
+        | exp EQ  exp   #eq
+        | exp GEQ  exp   #geq
+        | exp LEQ  exp   #leq
+        | NOT exp   #not
+        | exp OR  exp   #or
+        | exp AND  exp   #and
         | LPAR exp RPAR #pars
     	| MINUS? NUM #integer // NUMERI NEGATIVI
 	    | TRUE #true     
@@ -47,6 +54,9 @@ type    : INT #intType
 PLUS  	: '+' ;
 MINUS	: '-' ; 
 TIMES   : '*' ;
+
+DIV	    : '/' ;
+
 LPAR	: '(' ;
 RPAR	: ')' ;
 CLPAR	: '{' ;
@@ -54,7 +64,14 @@ CRPAR	: '}' ;
 SEMIC 	: ';' ;
 COLON   : ':' ; 
 COMMA	: ',' ;
-EQ	    : '==' ;	
+EQ	    : '==' ;
+
+LEQ	    : '<=' ;
+GEQ	    : '>=' ;
+OR	    : '||' ;
+AND	    : '&&' ;
+NOT	    : '!' ;
+
 ASS	    : '=' ;
 TRUE	: 'true' ;
 FALSE	: 'false' ;
