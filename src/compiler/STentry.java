@@ -3,6 +3,7 @@ package compiler;
 import compiler.lib.*;
 
 public class STentry implements Visitable {
+	// NESTING LEVEL
 	final int nl;
 	final TypeNode type;
 	final int offset;

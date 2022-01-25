@@ -26,7 +26,7 @@ exp     : exp TIMES exp #times
         | exp PLUS  exp #plus
         | exp EQ  exp   #eq 
         | LPAR exp RPAR #pars
-    	| MINUS? NUM #integer
+    	| MINUS? NUM #integer // NUMERI NEGATIVI
 	    | TRUE #true     
 	    | FALSE #false
 	    | IF exp THEN CLPAR exp CRPAR ELSE CLPAR exp CRPAR  #if   

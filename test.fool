@@ -1,14 +1,15 @@
-/* PROVA */
 let
-  var x:int = 5+3;
-  fun f:bool (n:int, m:int)
-    let
-      var x:bool = true;
-    in x==(n==m);
+    var x:int = 5+3;
+    fun f:bool (n:int, m:int)
+        let
+            var x:bool = true;
+        in
+            x==(n==m);
 in
-  print (
-   if f(x,8)
-     then { false }
-     else { 10 }
-  )
-;
+    print (
+        if f(x,8)
+        then { false }
+        else { 10 }
+    );
+
+/* print(5+3); */
