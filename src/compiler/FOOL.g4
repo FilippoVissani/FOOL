@@ -23,9 +23,9 @@ dec : VAR ID COLON type ASS exp SEMIC  #vardec
 // NEL COMPORTAMENTO DI DEFAULT VIENE USATA L'ASSOCIAZIONE A SINISTRA.
 // # STABILISCE IL NOME DELLA PRODUZIONE.
 exp     : exp TIMES exp #times
-        | exp PLUS  exp #plus
-        | exp MINUS  exp #minus
         | exp DIV  exp #div
+        | exp MINUS exp #minus
+        | exp PLUS  exp #plus
         | exp EQ  exp   #eq
         | exp GEQ  exp   #geq
         | exp LEQ  exp   #leq
@@ -33,8 +33,8 @@ exp     : exp TIMES exp #times
         | exp OR  exp   #or
         | exp AND  exp   #and
         | LPAR exp RPAR #pars
-    	| MINUS? NUM #integer // NUMERI NEGATIVI
-	    | TRUE #true     
+    	| MINUS? NUM #integer
+	    | TRUE #true
 	    | FALSE #false
 	    | IF exp THEN CLPAR exp CRPAR ELSE CLPAR exp CRPAR  #if   
 	    | PRINT LPAR exp RPAR #print
@@ -52,7 +52,7 @@ type    : INT #intType
  *------------------------------------------------------------------*/
 
 PLUS  	: '+' ;
-MINUS	: '-' ; 
+MINUS	: '-' ;
 TIMES   : '*' ;
 
 DIV	    : '/' ;
