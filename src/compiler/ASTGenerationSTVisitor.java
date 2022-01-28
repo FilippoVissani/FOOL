@@ -57,30 +57,6 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 	}
 
 	@Override
-	public Node visitTimes(TimesContext c) {
-		if (print) printVarAndProdName(c);
-		Node n = new TimesNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.TIMES().getSymbol().getLine());		// setLine added
-        return n;		
-	}
-
-	@Override
-	public Node visitPlus(PlusContext c) {
-		if (print) printVarAndProdName(c);
-		Node n = new PlusNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.PLUS().getSymbol().getLine());	
-        return n;		
-	}
-
-	@Override
-	public Node visitEq(EqContext c) {
-		if (print) printVarAndProdName(c);
-		Node n = new EqualNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.EQ().getSymbol().getLine());		
-        return n;		
-	}
-
-	@Override
 	public Node visitVardec(VardecContext c) {
 		if (print) printVarAndProdName(c);
 		Node n = null;
@@ -183,22 +159,6 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 	}
 
 	@Override
-	public Node visitGeq(GeqContext c) {
-		if (print) printVarAndProdName(c);
-		Node n = new GreaterEqualNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.GEQ().getSymbol().getLine());
-		return n;
-	}
-
-	@Override
-	public Node visitLeq(LeqContext c) {
-		if (print) printVarAndProdName(c);
-		Node n = new LessEqualNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.LEQ().getSymbol().getLine());
-		return n;
-	}
-
-	@Override
 	public Node visitNot(NotContext c) {
 		if (print) printVarAndProdName(c);
 		Node n = new NotNode(visit(c.exp()));
@@ -207,34 +167,63 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 	}
 
 	@Override
-	public Node visitMinus(MinusContext c) {
+	public Node visitPlusMinus(PlusMinusContext c) {
 		if (print) printVarAndProdName(c);
-		Node n = new MinusNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.MINUS().getSymbol().getLine());
+		if (c.MINUS() == null) {
+			Node n = new PlusNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.PLUS().getSymbol().getLine());
+			return n;
+		}else {
+			Node n = new MinusNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.MINUS().getSymbol().getLine());
+			return n;
+		}
+	}
+
+	@Override
+	public Node visitTimesDiv(TimesDivContext c) {
+		if (print) printVarAndProdName(c);
+		if (c.TIMES() == null) {
+			Node n = new DivNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.DIV().getSymbol().getLine());
+			return n;
+		}else {
+			Node n = new TimesNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.TIMES().getSymbol().getLine());
+			return n;
+		}
+	}
+
+	@Override
+	public Node visitComp(CompContext c) {
+		if (print) printVarAndProdName(c);
+		Node n = null;
+		if (c.LE() != null){
+			n = new LessEqualNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.LE().getSymbol().getLine());
+		}
+		if (c.GE() != null){
+			n = new GreaterEqualNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.GE().getSymbol().getLine());
+		}
+		if (c.EQ() != null){
+			n = new EqualNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.EQ().getSymbol().getLine());
+		}
 		return n;
 	}
 
 	@Override
-	public Node visitOr(OrContext c) {
+	public Node visitAndOr(AndOrContext c) {
 		if (print) printVarAndProdName(c);
-		Node n = new OrNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.OR().getSymbol().getLine());
-		return n;
-	}
-
-	@Override
-	public Node visitDiv(DivContext c) {
-		if (print) printVarAndProdName(c);
-		Node n = new DivNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.DIV().getSymbol().getLine());
-		return n;
-	}
-
-	@Override
-	public Node visitAnd(AndContext c) {
-		if (print) printVarAndProdName(c);
-		Node n = new AndNode(visit(c.exp(0)), visit(c.exp(1)));
-		n.setLine(c.AND().getSymbol().getLine());
-		return n;
+		if (c.OR() == null){
+			Node n = new AndNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.AND().getSymbol().getLine());
+			return n;
+		}else {
+			Node n = new OrNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.OR().getSymbol().getLine());
+			return n;
+		}
 	}
 }
