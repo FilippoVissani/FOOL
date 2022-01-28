@@ -8,70 +8,76 @@ public int lexicalErrors=0;
  * PARSER RULES
  *------------------------------------------------------------------*/
   
-prog  : progbody EOF ;
-     
-progbody : LET dec+ IN exp SEMIC  #letInProg
-         | exp SEMIC              #noDecProg
+prog : progbody EOF ;
+
+progbody : LET ( cldec+ dec* | dec+ ) IN exp SEMIC #letInProg
+         | exp SEMIC                               #noDecProg
          ;
-  
-dec : VAR ID COLON type ASS exp SEMIC  #vardec
-    | FUN ID COLON type LPAR (ID COLON type (COMMA ID COLON type)* )? RPAR 
-        	(LET dec+ IN)? exp SEMIC   #fundec
+
+cldec  : CLASS ID (EXTENDS ID)?
+              LPAR (ID COLON type (COMMA ID COLON type)* )? RPAR
+              CLPAR
+                   methdec*
+              CRPAR ;
+
+methdec : FUN ID COLON type
+              LPAR (ID COLON type (COMMA ID COLON type)* )? RPAR
+                   (LET dec+ IN)? exp
+              SEMIC ;
+
+dec : VAR ID COLON type ASS exp SEMIC #vardec
+    | FUN ID COLON type
+          LPAR (ID COLON type (COMMA ID COLON type)* )? RPAR
+               (LET dec+ IN)? exp
+          SEMIC #fundec
     ;
 
-// LE PRODUZIONI HANNO PRIORITÀ IN BASE ALL'ORDINE DI DICHIARAZIONE (ES: TIMES HA PRIORIÀ RISPETTO A PLUS).
-// NEL COMPORTAMENTO DI DEFAULT VIENE USATA L'ASSOCIAZIONE A SINISTRA.
-// # STABILISCE IL NOME DELLA PRODUZIONE.
-exp     : exp TIMES exp #times
-        | exp DIV  exp #div
-        | exp MINUS exp #minus
-        | exp PLUS  exp #plus
-        | exp EQ  exp   #eq
-        | exp GEQ  exp   #geq
-        | exp LEQ  exp   #leq
-        | NOT exp   #not
-        | exp OR  exp   #or
-        | exp AND  exp   #and
+exp     : exp (TIMES | DIV) exp #timesDiv
+        | exp (PLUS | MINUS) exp #plusMinus
+        | exp (EQ | GE | LE) exp #comp
+        | exp (AND | OR) exp #andOr
+	    | NOT exp #not
         | LPAR exp RPAR #pars
     	| MINUS? NUM #integer
 	    | TRUE #true
 	    | FALSE #false
-	    | IF exp THEN CLPAR exp CRPAR ELSE CLPAR exp CRPAR  #if   
+	    | NULL #null
+	    | NEW ID LPAR (exp (COMMA exp)* )? RPAR #new
+	    | IF exp THEN CLPAR exp CRPAR ELSE CLPAR exp CRPAR #if
 	    | PRINT LPAR exp RPAR #print
-	    | ID #id
+        | ID #id
 	    | ID LPAR (exp (COMMA exp)* )? RPAR #call
-        ; 
-             
+	    | ID DOT ID LPAR (exp (COMMA exp)* )? RPAR #dotCall
+        ;
+
+
 type    : INT #intType
         | BOOL #boolType
- 	    ;  
- 	  		  
+ 	    | ID #idType
+ 	    ;
+
 /*------------------------------------------------------------------
  * LEXER RULES
- * PRECEDENZA IN BASE ALL'ORDINE DI DICHIARAZIONE (PLUS È IL PIÙ RILEVANTE, MENTRE ERR È IL MENO RILEVANTE)
  *------------------------------------------------------------------*/
 
 PLUS  	: '+' ;
-MINUS	: '-' ;
+MINUS   : '-' ;
 TIMES   : '*' ;
-
-DIV	    : '/' ;
-
+DIV 	: '/' ;
 LPAR	: '(' ;
 RPAR	: ')' ;
 CLPAR	: '{' ;
 CRPAR	: '}' ;
 SEMIC 	: ';' ;
-COLON   : ':' ; 
+COLON   : ':' ;
 COMMA	: ',' ;
-EQ	    : '==' ;
-
-LEQ	    : '<=' ;
-GEQ	    : '>=' ;
-OR	    : '||' ;
-AND	    : '&&' ;
+DOT	    : '.' ;
+OR	    : '||';
+AND	    : '&&';
 NOT	    : '!' ;
-
+GE	    : '>=' ;
+LE	    : '<=' ;
+EQ	    : '==' ;
 ASS	    : '=' ;
 TRUE	: 'true' ;
 FALSE	: 'false' ;
@@ -79,25 +85,23 @@ IF	    : 'if' ;
 THEN	: 'then';
 ELSE	: 'else' ;
 PRINT	: 'print' ;
-LET     : 'let' ;	
-IN      : 'in' ;	
+LET     : 'let' ;
+IN      : 'in' ;
 VAR     : 'var' ;
-FUN	    : 'fun' ;	  
+FUN	    : 'fun' ;
+CLASS	: 'class' ;
+EXTENDS : 'extends' ;
+NEW 	: 'new' ;
+NULL    : 'null' ;
 INT	    : 'int' ;
 BOOL	: 'bool' ;
-NUM     : '0' | ('1'..'9')('0'..'9')* ; 
+NUM     : '0' | ('1'..'9')('0'..'9')* ;
 
 ID  	: ('a'..'z'|'A'..'Z')('a'..'z' | 'A'..'Z' | '0'..'9')* ;
 
-// CON channel(HIDDEN) IL TOKEN VIENE NASCOSTO AL PARSER.
+
 WHITESP  : ( '\t' | ' ' | '\r' | '\n' )+    -> channel(HIDDEN) ;
 
-// IL PUNTO INDICA TUTTI I CARATTERI DELL'ALFABETO.
-// *? È LA STELLA NON GREEDY, APPENA PUÒ ESCE.
-// SENZA ?, SE INSERSCO PIÙ COMMENTI, VIENE CONSIDERATO IL /* DEL PRIMO E IL */ DELL'ULTIMO,
-// QUINDI VENGONO COMMENTATE ANCHE LA PARTI DI CODICE IN MEZZO.
 COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
- 
-ERR   	 : . { System.out.println("Invalid char "+getText()+" at line "+getLine()); lexicalErrors++; } -> channel(HIDDEN); 
 
-
+ERR   	 : . { System.out.println("Invalid char: "+ getText() +" at line "+getLine()); lexicalErrors++; } -> channel(HIDDEN);
