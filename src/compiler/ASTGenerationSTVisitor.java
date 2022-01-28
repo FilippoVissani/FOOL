@@ -159,11 +159,17 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 	}
 
 	@Override
-	public Node visitNot(NotContext c) {
+	public Node visitTimesDiv(TimesDivContext c) {
 		if (print) printVarAndProdName(c);
-		Node n = new NotNode(visit(c.exp()));
-		n.setLine(c.NOT().getSymbol().getLine());
-		return n;
+		if (c.TIMES() == null) {
+			Node n = new DivNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.DIV().getSymbol().getLine());
+			return n;
+		}else {
+			Node n = new TimesNode(visit(c.exp(0)), visit(c.exp(1)));
+			n.setLine(c.TIMES().getSymbol().getLine());
+			return n;
+		}
 	}
 
 	@Override
@@ -176,20 +182,6 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 		}else {
 			Node n = new MinusNode(visit(c.exp(0)), visit(c.exp(1)));
 			n.setLine(c.MINUS().getSymbol().getLine());
-			return n;
-		}
-	}
-
-	@Override
-	public Node visitTimesDiv(TimesDivContext c) {
-		if (print) printVarAndProdName(c);
-		if (c.TIMES() == null) {
-			Node n = new DivNode(visit(c.exp(0)), visit(c.exp(1)));
-			n.setLine(c.DIV().getSymbol().getLine());
-			return n;
-		}else {
-			Node n = new TimesNode(visit(c.exp(0)), visit(c.exp(1)));
-			n.setLine(c.TIMES().getSymbol().getLine());
 			return n;
 		}
 	}
@@ -225,5 +217,13 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 			n.setLine(c.OR().getSymbol().getLine());
 			return n;
 		}
+	}
+
+	@Override
+	public Node visitNot(NotContext c) {
+		if (print) printVarAndProdName(c);
+		Node n = new NotNode(visit(c.exp()));
+		n.setLine(c.NOT().getSymbol().getLine());
+		return n;
 	}
 }
