@@ -1,1 +1,12 @@
-print(1||2);
+let
+    var x:int = 22/2;           /* 11 */
+    var y:bool = (5+2) >= 5;    /* true */
+    var z:int = 5*3-4;          /* 11 */
+    fun f:bool (b:bool, i:int)
+       b == i;
+in
+    print(
+        if (y && !(z == x)) || (z-y == 9)
+            then { f(true,1) }
+            else { 5 }
+    );
