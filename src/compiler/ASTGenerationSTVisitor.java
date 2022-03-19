@@ -158,6 +158,8 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 		return n;
 	}
 
+	// OPERATOR EXTENSION
+
 	@Override
 	public Node visitTimesDiv(TimesDivContext c) {
 		if (print) printVarAndProdName(c);
@@ -225,5 +227,79 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 		Node n = new NotNode(visit(c.exp()));
 		n.setLine(c.NOT().getSymbol().getLine());
 		return n;
+	}
+
+	// OBJECT-ORIENTED EXTENSION
+	@Override
+	public Node visitCldec(CldecContext c) {
+		if (print) printVarAndProdName(c);
+		List<FieldNode> fields = new ArrayList<>();
+		for (int i = 1; i < c.ID().size(); i++) {
+			// nella produzione c'e' un ID in piu' (classe) rispetto ai type
+			FieldNode f = new FieldNode(c.ID(i).getText(),(TypeNode) visit(c.type(i-1)));
+			f.setLine(c.ID(i).getSymbol().getLine());
+			fields.add(f);
+		}
+		List<MethodNode> methods = new ArrayList<>();
+		c.methdec().forEach(declaration -> methods.add((MethodNode) visit(declaration)));
+		Node n = null;
+		if (c.ID().size()>0) {
+			n = new ClassNode(c.ID(0).getText(),fields,methods);
+			n.setLine(c.CLASS().getSymbol().getLine());
+		}
+		return n;
+	}
+
+	@Override
+	public Node visitMethdec(MethdecContext c) {
+		if (print) printVarAndProdName(c);
+		List<ParNode> parameters = new ArrayList<>();
+		for (int i = 1; i < c.ID().size(); i++) {
+			ParNode p = new ParNode(c.ID(i).getText(),(TypeNode) visit(c.type(i)));
+			p.setLine(c.ID(i).getSymbol().getLine());
+			parameters.add(p);
+		}
+		List<DecNode> declarations = new ArrayList<>();
+		c.dec().forEach(declaration -> declarations.add((DecNode) visit(declaration)));
+		Node n = null;
+		if (c.ID().size()>0) {
+			n = new MethodNode(c.ID(0).getText(),(TypeNode)visit(c.type(0)),parameters,declarations,visit(c.exp()));
+			n.setLine(c.FUN().getSymbol().getLine());
+		}
+		return n;
+	}
+
+	@Override
+	public Node visitNull(NullContext c) {
+		// TODO controllare
+		if (print) printVarAndProdName(c);
+		return new EmptyNode();
+	}
+
+	@Override
+	public Node visitNew(NewContext c) {
+		if (print) printVarAndProdName(c);
+		List<Node> arglist = new ArrayList<>();
+		for (ExpContext arg : c.exp()) arglist.add(visit(arg));
+		Node n = new NewNode(c.ID().getText(), arglist);
+		n.setLine(c.ID().getSymbol().getLine());
+		return n;
+	}
+
+	@Override
+	public Node visitDotCall(DotCallContext c) {
+		if (print) printVarAndProdName(c);
+		List<Node> arglist = new ArrayList<>();
+		for (ExpContext arg : c.exp()) arglist.add(visit(arg));
+		Node n = new ClassCallNode(c.ID(0).getText(), c.ID(1).getText(), arglist);
+		n.setLine(c.ID(0).getSymbol().getLine());
+		return n;
+	}
+
+	@Override
+	public Node visitIdType(IdTypeContext c) {
+		// TODO controllare
+		if (print) printVarAndProdName(c);
+		return new RefTypeNode(c.ID().getText());
 	}
 }
