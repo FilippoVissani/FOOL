@@ -24,7 +24,7 @@ public class Test {
     		parser.getNumberOfSyntaxErrors()+" syntax errors.\n");
 
     	System.out.println("Generating AST.");
-    	ASTGenerationSTVisitor visitor = new ASTGenerationSTVisitor(true); // use true to visualize the ST
+    	ASTGenerationSTVisitor visitor = new ASTGenerationSTVisitor(false); // use true to visualize the ST
     	Node ast = visitor.visit(st);
     	System.out.println("");
 
@@ -56,7 +56,7 @@ public class Test {
 		if ( frontEndErrors > 0) System.exit(1);   
 
     	System.out.println("Generating code.");
-    	String code = new CodeGenerationASTVisitor(false).visit(ast);
+    	String code = new CodeGenerationASTVisitor(true).visit(ast);
     	BufferedWriter out = new BufferedWriter(new FileWriter(fileName+".asm")); 
     	out.write(code);
     	out.close(); 

@@ -237,7 +237,7 @@ public class AST {
 	}
 
 	// OBJECT-ORIENTED EXTENSION
-	public static class ClassNode extends Node {
+	public static class ClassNode extends DecNode {
 		final String id;
 		final List<FieldNode> fields;
 		final List<MethodNode> methods;
@@ -264,11 +264,12 @@ public class AST {
 		final List<ParNode> parlist;
 		final List<DecNode> declist;
 		final Node exp;
+		final TypeNode retType;
 		String label;
 		int offset;
 		MethodNode(String i, TypeNode rt, List<ParNode> pl, List<DecNode> dl, Node e) {
 			id=i;
-			type=rt;
+			retType=rt;
 			parlist=Collections.unmodifiableList(pl);
 			declist=Collections.unmodifiableList(dl);
 			exp=e;
