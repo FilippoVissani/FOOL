@@ -46,7 +46,9 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 	public Node visitLetInProg(LetInProgContext c) {
 		if (print) printVarAndProdName(c);
 		List<DecNode> declist = new ArrayList<>();
+		// visita delle dichiarazioni delle classi
 		for (CldecContext classDeclaration : c.cldec()) declist.add((DecNode) visit(classDeclaration));
+		// visita delle dichiarazioni di variabili e funzioni
 		for (DecContext dec : c.dec()) declist.add((DecNode) visit(dec));
 		return new ProgLetInNode(declist, visit(c.exp()));
 	}
@@ -234,6 +236,7 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 	@Override
 	public Node visitCldec(CldecContext c) {
 		if (print) printVarAndProdName(c);
+		// visita della dichiarazione dei campi
 		List<FieldNode> fields = new ArrayList<>();
 		for (int i = 1; i < c.ID().size(); i++) {
 			// nella produzione c'e' un ID in piu' (classe) rispetto ai type
@@ -241,6 +244,7 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 			f.setLine(c.ID(i).getSymbol().getLine());
 			fields.add(f);
 		}
+		// visita della dichiarazione dei metodi
 		List<MethodNode> methods = new ArrayList<>();
 		c.methdec().forEach(declaration -> methods.add((MethodNode) visit(declaration)));
 		Node n = null;
@@ -254,12 +258,14 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 	@Override
 	public Node visitMethdec(MethdecContext c) {
 		if (print) printVarAndProdName(c);
+		// visita delle dichiarazioni dei parametri
 		List<ParNode> parameters = new ArrayList<>();
 		for (int i = 1; i < c.ID().size(); i++) {
 			ParNode p = new ParNode(c.ID(i).getText(),(TypeNode) visit(c.type(i)));
 			p.setLine(c.ID(i).getSymbol().getLine());
 			parameters.add(p);
 		}
+		// visita delle dichiarazioni all'interno del metodo
 		List<DecNode> declarations = new ArrayList<>();
 		c.dec().forEach(declaration -> declarations.add((DecNode) visit(declaration)));
 		Node n = null;
@@ -272,14 +278,16 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 
 	@Override
 	public Node visitNull(NullContext c) {
-		// TODO controllare
 		if (print) printVarAndProdName(c);
-		return new EmptyNode();
+		Node n = new EmptyNode();
+		n.setLine(c.NULL().getSymbol().getLine());
+		return n;
 	}
 
 	@Override
 	public Node visitNew(NewContext c) {
 		if (print) printVarAndProdName(c);
+		// visita degli argomenti
 		List<Node> arglist = new ArrayList<>();
 		for (ExpContext arg : c.exp()) arglist.add(visit(arg));
 		Node n = new NewNode(c.ID().getText(), arglist);
@@ -299,8 +307,9 @@ public class ASTGenerationSTVisitor extends FOOLBaseVisitor<Node> {
 
 	@Override
 	public Node visitIdType(IdTypeContext c) {
-		// TODO controllare
 		if (print) printVarAndProdName(c);
-		return new RefTypeNode(c.ID().getText());
+		Node n = new RefTypeNode(c.ID().getText());
+		n.setLine(c.ID().getSymbol().getLine());
+		return n;
 	}
 }

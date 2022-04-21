@@ -38,8 +38,10 @@ public class AST {
 	    	declist=Collections.unmodifiableList(dl); 
 	    	exp=e;
 	    }
-		
-		//void setType(TypeNode t) {type = t;}
+
+		void setType(TypeNode t){
+			type = t;
+		}
 		
 		@Override
 		public <S,E extends Exception> S accept(BaseASTVisitor<S,E> visitor) throws E {return visitor.visitNode(this);}
@@ -241,6 +243,8 @@ public class AST {
 		final String id;
 		final List<FieldNode> fields;
 		final List<MethodNode> methods;
+
+		ClassTypeNode type;
 		ClassNode(String i, List<FieldNode> fl, List<MethodNode> ml) {
 			id=i;
 			fields=Collections.unmodifiableList(fl);
@@ -253,6 +257,7 @@ public class AST {
 
 	public static class FieldNode extends DecNode {
 		final String id;
+		int offset;
 		FieldNode(String i, TypeNode t) {id = i; type = t;}
 
 		@Override
@@ -275,6 +280,9 @@ public class AST {
 			exp=e;
 		}
 
+		public void setType(MethodTypeNode methodType) {
+			this.type = methodType;
+		}
 		@Override
 		public <S,E extends Exception> S accept(BaseASTVisitor<S,E> visitor) throws E {return visitor.visitNode(this);}
 	}
@@ -297,11 +305,9 @@ public class AST {
 	}
 
 	public static class NewNode extends Node {
-		// TODO controllare
 		final String id;
 		final List<Node> arglist;
 		STentry entry;
-		int nl;
 		NewNode(String i, List<Node> p) {
 			id = i;
 			arglist = Collections.unmodifiableList(p);
@@ -320,8 +326,8 @@ public class AST {
 		final List<TypeNode> allFields;
 		final List<ArrowTypeNode> allMethods;
 		ClassTypeNode(List<TypeNode> f, List<ArrowTypeNode> m) {
-			allFields = Collections.unmodifiableList(f);
-			allMethods = Collections.unmodifiableList(m);
+			allFields = f;
+			allMethods = m;
 		}
 
 		@Override
