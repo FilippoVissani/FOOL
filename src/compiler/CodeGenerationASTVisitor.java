@@ -119,7 +119,7 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 	@Override
 	public String visitNode(EqualNode n) {
 		if (print) printNode(n);
-	 	String l1 = freshLabel();
+		String l1 = freshLabel();
 	 	String l2 = freshLabel();
 		return nlJoin(
 			visit(n.left),
@@ -191,7 +191,7 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 							// allora lo duplico usando il registro temporaneo
 					"stm", // set $tm to popped value (with the aim of duplicating top of stack)
 					"ltm", // load Access Link (pointer to frame of function "id" declaration)
-					"ltm", // duplicate top of stack (object pointer)
+					"ltm", // duplicate top of stack
 					"lw", // dereferenzio e accedo alla dispatch table
 					"push " + n.entry.offset,
 					"add", // calcolo l'indirizzo della dichiarazione del metodo
@@ -200,7 +200,7 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 			);
 		} else {
 			return nlJoin(
-					"lfp", // prendo $fp (che punta al chiamante) e lo pusho sullo stack, verrà usato come Control Link
+					"lfp", // prendo $fp (che punta ancora al chiamante) e lo pusho sullo stack, verrà usato come Control Link
 					argCode, // codice degli argomenti in ordine inverso
 					"lfp", // metto sullo stack il frame pointer per risalire la catena di AL
 					getAR, // retrieve address of frame containing "id" declaration
@@ -541,7 +541,6 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		return nlJoin(
 				argCode,
 				putArgToHeapCode,
-
 				"push " + ExecuteVM.MEMSIZE + n.entry.offset,
 				"lw",
 				"lhp",
