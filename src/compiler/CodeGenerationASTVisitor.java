@@ -66,7 +66,7 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		putCode(
 			nlJoin(
 				funl+":", // label della funzione
-				"cfp", // set $fp to $sp value, l'Acces Link è sulla cima dello stack
+				"cfp", // set $fp to $sp value, $fp punta al nuovo record di attivazione
 				"lra", // push di $ra sullo stack, utilizzato per accedere all'istruzione successiva alla terminazione della chiamata
 				declCode, // generate code for local declarations (they use the new $fp!!!)
 				visit(n.exp), // generate code for function body expression
