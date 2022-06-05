@@ -22,16 +22,6 @@ public class TypeRels {
 				&& ((RefTypeNode) a).id.equals(((RefTypeNode) b).id)){
 			return true;
 		}
-		if (a instanceof ArrowTypeNode && b instanceof ArrowTypeNode
-				&& ((ArrowTypeNode) a).ret.equals(((ArrowTypeNode) b).ret)
-				&& ((ArrowTypeNode) a).parlist.size() == ((ArrowTypeNode) b).parlist.size()){
-			for (int i = 0; i < ((ArrowTypeNode) a).parlist.size(); i++){
-				if (!isSubtype(((ArrowTypeNode) a).parlist.get(i), ((ArrowTypeNode) b).parlist.get(i))){
-					return false;
-				}
-			}
-			return true;
-		}
 		return false;
 	}
 }

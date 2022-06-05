@@ -12,11 +12,11 @@ public class ExecuteVM {
     // STACK POINTER, PUNTA AL TOP DELLO STACK (MEMORY)
     // LO STACK VIENE MEMORIZZATO A PARTIRE DALL'INDIRIZZO PIÙ ALTO DELLA MEMORIA
     private int sp = MEMSIZE;
-    // HEAP POINTER, PARTE DALLA PARTE BASSA DELLA MEMORIA
+    // HEAP POINTER, PUNTA ALLA CIMA DELLO HEAP
     private int hp = 0;
-    // FRAME POINTER, UTILIZZATO PER PUNTARE PARTI DI STACK
+    // FRAME POINTER, PUNTA AL RECORD DI ATTIVAZIONE DELLA FUNZIONE CORRENTE
     private int fp = MEMSIZE;
-    // RETURN ADDRESS
+    // RETURN ADDRESS, UTILIZZATO PER IMPOSTARE L'ISTRUZIONE DA ESEGUIRE DOPO UNA CHIAMATA A FUNZIONE
     private int ra;
     // REGISTRO TEMPORANEO
     private int tm;
@@ -61,7 +61,7 @@ public class ExecuteVM {
             address = pop();
             memory[address] = pop();    
             break;
-          case SVMParser.LOADW : // POP DI UN INDIRIZZO E PUSH SULLO STACK DEL VALORE PUNTATO DA QUELL'INDIRIZZO
+          case SVMParser.LOADW : // POP DI UN INDIRIZZO E PUSH SULLO STACK DEL VALORE IN QUELL'INDIRIZZO
             push(memory[pop()]);
             break;
           case SVMParser.BRANCH : 

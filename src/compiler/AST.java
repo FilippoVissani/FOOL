@@ -257,7 +257,6 @@ public class AST {
 
 	public static class FieldNode extends DecNode {
 		final String id;
-		int offset;
 		FieldNode(String i, TypeNode t) {id = i; type = t;}
 
 		@Override
@@ -271,7 +270,6 @@ public class AST {
 		final Node exp;
 		final TypeNode retType;
 		String label;
-		int offset;
 		MethodNode(String i, TypeNode rt, List<ParNode> pl, List<DecNode> dl, Node e) {
 			id=i;
 			retType=rt;

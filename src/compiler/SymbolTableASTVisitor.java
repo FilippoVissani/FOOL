@@ -257,13 +257,11 @@ public class SymbolTableASTVisitor extends BaseASTVisitor<Void,VoidException> {
 		// Aggiornamento campi virtual table (da -1 a -n)
 		int fieldOffset=-1;
 		for (FieldNode field : n.fields){
-			if (virtualTable.put(field.id, new STentry(nestingLevel, field.getType(), fieldOffset)) != null){
+			if (virtualTable.put(field.id, new STentry(nestingLevel, field.getType(), fieldOffset--)) != null){
 				System.out.println("Field id " + field.id + " at line "+ n.getLine() +" already declared");
 				stErrors++;
 			}
 			// aggiungo il campo in allFields in posizione -offset-1 (da 0 a n-1)
-			field.offset = fieldOffset;
-			fieldOffset--;
 			fields.add(field.getType());
 		}
 		// Aggiornamento metodi virtual table (da 0 a m-1)
@@ -275,7 +273,6 @@ public class SymbolTableASTVisitor extends BaseASTVisitor<Void,VoidException> {
 				System.out.println("Method id " + method.id + " at line "+ n.getLine() +" already declared");
 				stErrors++;
 			}
-			method.offset = decOffset;
 			decOffset++;
 			// aggiungo il metodo in allMethods in posizione offset (da 0 a m-1)
 			methods.add(((MethodTypeNode) method.getType()).fun);
@@ -317,22 +314,22 @@ public class SymbolTableASTVisitor extends BaseASTVisitor<Void,VoidException> {
 	@Override
 	public Void visitNode(ClassCallNode n) {
 		if (print) printNode(n);
-		STentry entry = stLookup(n.id1);
-		if (entry == null) {
+		STentry classEntry = stLookup(n.id1);
+		if (classEntry == null) {
 			System.out.println("Object id " + n.id1 + " at line "+ n.getLine() + " not declared");
 			stErrors++;
 		} else {
-			if (!(entry.type instanceof RefTypeNode)){
+			if (!(classEntry.type instanceof RefTypeNode)){
 				System.out.println("Object id " + n.id1 + " at line "+ n.getLine() + " has not a RefTypeNode");
 				stErrors++;
 			} else{
 				// cerco il metodo nella virtual table della classe dell'oggetto
-				STentry methodEntry = classTable.get(((RefTypeNode) entry.type).id).get(n.id2);
+				STentry methodEntry = classTable.get(((RefTypeNode) classEntry.type).id).get(n.id2);
 				if (methodEntry == null){
 					System.out.println("Method id " + n.id2 + " at line "+ n.getLine() + " not declared");
 					stErrors++;
 				}else{
-					n.entry = entry;
+					n.entry = classEntry;
 					n.methodEntry = methodEntry;
 					n.nl = nestingLevel;
 				}

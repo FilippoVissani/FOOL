@@ -15,13 +15,24 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
   CodeGenerationASTVisitor() {}
   CodeGenerationASTVisitor(boolean debug) {super(false,debug);} //enables print for debugging
 
+	/*
+	LAYOUT AR DELL'AMBIENTE GLOBALE
+
+	[BASE DELLO STACK E' QUI SOTTO]           <- $fp in codice "main"
+	Return Address fittizio 0 (si va in halt)
+	valore/addr prima var/funz dichiarata     [offset -2]
+	valore/addr seconda var/funz              [offset -3]
+	.
+	.
+	valore/addr ultima (n-esima) var/funz     [offset -(n+1)]
+	* */
 	@Override
 	public String visitNode(ProgLetInNode n) {
 		if (print) printNode(n);
 		String declCode = null;
 		for (Node dec : n.declist) declCode=nlJoin(declCode,visit(dec));
 		return nlJoin(
-			"push 0",	
+			"push 0",	// ra fittizio per uniformare gli offset
 			declCode, // generate code for declarations (allocation)			
 			visit(n.exp),
 			"halt",
@@ -40,6 +51,10 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 
 	@Override
 	public String visitNode(FunNode n) {
+	  /*
+	  salva il corpo della funzione sfruttando FOOLLib.putCode().
+	  Il corpo verrà recuperato successivamente grazie a FOOLLib.getCode() e posto subito dopo halt
+	  * */
 		if (print) printNode(n,n.id);
 		String declCode = null, popDecl = null, popParl = null;
 		for (Node dec : n.declist) {
@@ -50,9 +65,9 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		String funl = freshFunLabel();
 		putCode(
 			nlJoin(
-				funl+":",
-				"cfp", // set $fp to $sp value
-				"lra", // load $ra value
+				funl+":", // label della funzione
+				"cfp", // set $fp to $sp value, l'Acces Link è sulla cima dello stack
+				"lra", // push di $ra sullo stack, utilizzato per accedere all'istruzione successiva alla terminazione della chiamata
 				declCode, // generate code for local declarations (they use the new $fp!!!)
 				visit(n.exp), // generate code for function body expression
 				"stm", // set $tm to popped value (function result)
@@ -60,10 +75,10 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 				"sra", // set $ra to popped value
 				"pop", // remove Access Link from stack
 				popParl, // remove parameters from stack
-				"sfp", // set $fp to popped value (Control Link)
+				"sfp", // set $fp to popped value (Control Link), il controllo ritorna alla funzione chiamante
 				"ltm", // load $tm value (function result)
-				"lra", // load $ra value
-				"js"  // jump to to popped address
+				"lra", // load $ra value, carico l'indirizzo che contiene l'istruzione da eseguire alla fine della chiamata
+				"js"  // jump to popped address (saving address of subsequent instruction in $ra)
 			)
 		);
 		return "push "+funl;		
@@ -138,40 +153,67 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		);
 	}
 
+	/*
+	* 	LAYOUT AR DI UNA FUNZIONE (STACK CRESCE VERSO IL BASSO!)
+
+		CL:address (fp) di AR chiamante
+		valore ultimo (m-esimo) parametro         [offset m]
+		.
+		.
+		valore primo parametro                    [offset 1]
+		AL:address (fp) di AR dichiarazione       <- $fp in codice body della funz
+		Return Address
+		valore/addr prima var/funz dichiarata     [offset -2]
+		valore/addr seconda var/funz              [offset -3]
+		.
+		.
+		valore/addr ultima (n-esima) var/funz     [offset -(n+1)]
+	* */
 	@Override
 	public String visitNode(CallNode n) {
 		if (print) printNode(n,n.id);
 		String argCode = null;
 		String getAR = null;
-		for (int i=n.arglist.size()-1;i>=0;i--) argCode=nlJoin(argCode,visit(n.arglist.get(i)));
-		for (int i = 0;i<n.nl-n.entry.nl;i++) getAR=nlJoin(getAR,"lw");
+		// codice degli argomenti al contrario (m -> 1)
+		for (int i = n.arglist.size() - 1; i >= 0 ; i--) argCode = nlJoin(argCode,visit(n.arglist.get(i)));
+		// codice per accedere alla dichiarazione della funzione/metodo
+		// risale la catena statica degli AL
+		for (int i = 0; i < n.nl - n.entry.nl; i++) getAR = nlJoin(getAR,"lw");
 		if ((n.entry.type instanceof MethodTypeNode)){
 			return nlJoin(
-					"lfp", // load Control Link (pointer to frame of function "id" caller)
-					argCode, // generate code for argument expressions in reversed order
-					"lfp", getAR, // retrieve address of frame containing "id" declaration
-					// by following the static chain (of Access Links)
+					"lfp", // prendo $fp (che punta al chiamante) e lo pusho sullo stack, verrà usato come Control Link
+					argCode, // codice degli argomenti in ordine inverso
+					"lfp", // metto sullo stack il frame pointer per risalire la catena di AL
+					getAR, // retrieve address of frame containing "id" declaration
+							// by following the static chain (of Access Links)
+							// sulla cima dello stack ho l'AL, che deve puntare al frame con la dichiarazione della funzione.
+							// siccome oltre a lasciare l'AL sulla cima dello stack (per rispettare il layout) lo devo anche usare
+							// allora lo duplico usando il registro temporaneo
 					"stm", // set $tm to popped value (with the aim of duplicating top of stack)
 					"ltm", // load Access Link (pointer to frame of function "id" declaration)
 					"ltm", // duplicate top of stack (object pointer)
-					"lw",
+					"lw", // dereferenzio e accedo alla dispatch table
 					"push " + n.entry.offset,
-					"add", // compute address of "id" declaration
-					"lw", // load address of "id" function
+					"add", // calcolo l'indirizzo della dichiarazione del metodo
+					"lw", // carico l'indirizzo della dichiarazione a cui saltare
 					"js"  // jump to popped address (saving address of subsequent instruction in $ra)
 			);
 		} else {
 			return nlJoin(
-					"lfp", // load Control Link (pointer to frame of function "id" caller)
-					argCode, // generate code for argument expressions in reversed order
-					"lfp", getAR, // retrieve address of frame containing "id" declaration
-					// by following the static chain (of Access Links)
+					"lfp", // prendo $fp (che punta al chiamante) e lo pusho sullo stack, verrà usato come Control Link
+					argCode, // codice degli argomenti in ordine inverso
+					"lfp", // metto sullo stack il frame pointer per risalire la catena di AL
+					getAR, // retrieve address of frame containing "id" declaration
+							// by following the static chain (of Access Links)
+							// sulla cima dello stack ho l'AL, che deve puntare al frame con la dichiarazione della funzione.
+							// siccome oltre a lasciare l'AL sulla cima dello stack (per rispettare il layout) lo devo anche usare
+							// allora lo duplico usando il registro temporaneo
 					"stm", // set $tm to popped value (with the aim of duplicating top of stack)
 					"ltm", // load Access Link (pointer to frame of function "id" declaration)
 					"ltm", // duplicate top of stack
 					"push "+ n.entry.offset,
-					"add", // compute address of "id" declaration
-					"lw", // load address of "id" function
+					"add", // calcolo l'indirizzo della dichiarazione della funzione
+					"lw", // carico l'indirizzo della dichiarazione a cui saltare
 					"js"  // jump to popped address (saving address of subsequent instruction in $ra)
 			);
 		}
@@ -181,12 +223,15 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 	public String visitNode(IdNode n) {
 		if (print) printNode(n,n.id);
 		String getAR = null;
+		// codice per accedere alla dichiarazione della variabile
+		// risale la catena statica degli AL
 		for (int i = 0;i<n.nl-n.entry.nl;i++) getAR=nlJoin(getAR,"lw");
 		return nlJoin(
-			"lfp", getAR, // retrieve address of frame containing "id" declaration
-			              // by following the static chain (of Access Links)
-			"push "+n.entry.offset, "add", // compute address of "id" declaration
-			"lw" // load value of "id" variable
+				"lfp",
+				getAR, // retrieve address of frame containing "id" declaration
+						// by following the static chain (of Access Links)
+				"push "+n.entry.offset, "add", // compute address of "id" declaration
+				"lw" // load value of "id" variable
 		);
 	}
 
@@ -209,19 +254,16 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		if (print) printNode(n);
 		String l1 = freshLabel();
 		String l2 = freshLabel();
-		String l3 = freshLabel();
 		return nlJoin(
-				visit(n.left),
 				visit(n.right),
+				visit(n.left),
+				"sub", // right - left
+				"push 0",
 				"bleq "+l1,
-				l3+":",
-				"push 1",
+				"push 0",
 				"b "+l2,
 				l1+":",
-				visit(n.left),
-				visit(n.right),
-				"beq "+l3,
-				"push 0",
+				"push 1",
 				l2+":"
 		);
 	}
@@ -321,6 +363,14 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 	}
 
 	// OBJECT-ORIENTED EXTENSION
+	/*
+	[PRIMA POSIZIONE LIBERA HEAP] 		<- $hp subito dopo allocazione oggetto
+	dispatch pointer					[offset 0] <- object pointer
+	valore primo campo dichiarato		[offset -1]
+	.
+	.
+	valore ultimo (n-esimo) campo		[offset -n]
+	*/
 
 	@Override
 	public String visitNode(ClassNode n) {
@@ -343,7 +393,7 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		 */
 		n.methods.forEach(method -> {
 			visit(method);
-			dispatchTable.add(method.offset, method.label);
+			dispatchTable.add(method.label);
 		});
 		// codice ritornato
 		/*
@@ -353,20 +403,27 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		scorro dall’inizio alla fine e, per ciascuna etichetta,
 		la memorizzo a indirizzo in $hp e incremento $hp
 		 */
-		String buildDispatchTable = nlJoin("lhp");
+		String buildDispatchTable = nlJoin("lhp"); // push di hp sullo stack, ingresso per la dispatch table
 		for (String methodLabel: dispatchTable) {
 			buildDispatchTable = nlJoin(buildDispatchTable,
-					"push " + methodLabel,
-					"lhp",
-					"sw",
-					"lhp",
-					"push 1",
-					"add",
-					"shp");
+					"push " + methodLabel, // push della label del metodo sullo stack
+					"lhp", // push di hp sullo stack
+					"sw", // pop dei due valori e metto il secondo all'indirizzo puntato dal primo (label del metodo nello heap)
+					"lhp", // push di hp sullo stack
+					"push 1", // push di 1 sullo stack
+					"add", // sommo i due valori
+					"shp"); // memorizzo il risultato in hp (incremento hp di 1)
 		}
 		return buildDispatchTable;
 	}
 
+	/*
+	[PRIMA POSIZIONE LIBERA HEAP] 		<- $hp subito dopo allocazione tabella
+	addr ultimo (m-esimo) metodo		[offset m-1]
+	.
+	.
+	addr primo metodo dichiarato		[offset 0] <- dispatch pointer
+	* */
 	@Override
 	public String visitNode(MethodNode n) {
 		if (print) printNode(n,n.id);
@@ -390,19 +447,9 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		for (ParNode p : n.parlist) popParl = nlJoin(popParl,"pop");
 		putCode(
 				nlJoin(
-						//
-						/*
-						 * activation record (AR) = frame.
-						 * - Il frame pointer non punta alla fine del frame
-						 * - Il chiamato effettua delle pop per:
-						 *	> il valore di ritorno
-						 * 	> l’indirizzo di ritorno
-						 * 	> gli argomenti
-						 * 	> il valore salvato nel frame pointer
-						 */
-						methl+":",
-						"cfp", // set $fp to $sp value
-						"lra", // load $ra value
+						methl+":", // label del metodo
+						"cfp", // set $fp to $sp value, l'Acces Link è sulla cima dello stack
+						"lra", // push di $ra sullo stack, utilizzato per accedere all'istruzione successiva alla terminazione della chiamata
 						declCode, // generate code for local declarations (they use the new $fp!!!)
 						visit(n.exp), // generate code for method body expression
 						"stm", // set $tm to popped value (method result)
@@ -410,10 +457,10 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 						"sra", // set $ra to popped value
 						"pop", // remove Access Link from stack
 						popParl, // remove parameters from stack
-						"sfp", // set $fp to popped value (Control Link)
+						"sfp", // set $fp to popped value (Control Link), il controllo ritorna alla funzione chiamante
 						"ltm", // load $tm value (function result)
-						"lra", // load $ra value
-						"js"  // jump to popped address
+						"lra", // // load $ra value, carico l'indirizzo che contiene l'istruzione da eseguire alla fine della chiamata
+						"js"  // jump to popped address (saving address of subsequent instruction in $ra)
 				)
 		);
 		//ritorna codice vuoto (null)
@@ -447,19 +494,19 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 		return nlJoin(
 				"lfp", // load Control Link (pointer to frame of function "id" caller)
 				argCode, // generate code for argument expressions in reversed order
-				"lfp",
+				"lfp", // metto sullo stack il frame pointer per risalire la catena di AL
 				getAR, // retrieve address of frame containing "id" declaration
 				// by following the static chain (of Access Links)
 				"push "+n.entry.offset,
 				"add", // compute address of "id" declaration
-				"lw", // load value of "id" variable
+				"lw", // push del dispatch pointer sullo sack
 				"stm", // set $tm to popped value (with the aim of duplicating top of stack)
-				"ltm", // load Access Link (pointer to frame of function "id" declaration)
-				"ltm", // duplicate top of stack
-				"lw",
+				"ltm",
+				"ltm", // duplico il dispatch pointer
+				"lw", // carico il primo indirizzo della dispatch table sullo stack
 				"push "+n.methodEntry.offset,
-				"add", // compute address of "id" declaration
-				"lw", // load address of "id" function
+				"add", // calcolo l'indirizzo del metodo a cui saltare
+				"lw", // salto all'indirizzo del metodo
 				"js"  // jump to popped address (saving address of subsequent instruction in $ra)
 		);
 	}
@@ -483,38 +530,28 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 			*/
 			putArgToHeapCode=nlJoin(
 					putArgToHeapCode,
-					"lhp",
-					"sw",
-					"lhp",
+					"lhp", // metto sullo stack hp
+					"sw", // metto il valore dell'argomento sullo heap
+					"lhp", // metto sullo stack hp
 					"push 1",
 					"add",
-					"shp");
+					"shp" //incremento hp
+			);
 		}
 		return nlJoin(
 				argCode,
 				putArgToHeapCode,
-				/*
-				* 	• scrive a indirizzo $hp il dispatch pointer recuperandolo da
-				* 	contenuto indirizzo MEMSIZE + offset classe ID
-				*/
-				"push " + ExecuteVM.MEMSIZE,  //dispatch pointer
-				"push " + n.entry.offset,
-				"add",
+
+				"push " + ExecuteVM.MEMSIZE + n.entry.offset,
 				"lw",
-				/*
-				* 	• carica sullo stack il valore di $hp (indirizzo object pointer
-				* 	da ritornare) e incrementa $hp
-				* – nota: anche se la classe ID non ha campi l’oggetto
-				* allocato contiene comunque il dispatch pointer
-				* 	• == tra object pointer ottenuti da due new è sempre falso!
-				* */
-				"lhp",	// object pointer
-				"sw",
 				"lhp",
-				"lhp",
+				"sw", //scrive a indirizzo $hp il dispatch pointer recuperandolo
+					  // contenuto indirizzo MEMSIZE + offset classe ID
+				"lhp", // carico sullo stack l'object pointer
+				"lhp", // lo duplico
 				"push 1",
 				"add",
-				"shp"
+				"shp" // incremento $hp per farlo puntare alla cima dello heap
 		);
 	}
 
