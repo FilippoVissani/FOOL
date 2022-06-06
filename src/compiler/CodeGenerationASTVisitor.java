@@ -535,13 +535,13 @@ public class CodeGenerationASTVisitor extends BaseASTVisitor<String, VoidExcepti
 					"lhp", // metto sullo stack hp
 					"push 1",
 					"add",
-					"shp" //incremento hp
+					"shp" //incremento $hp
 			);
 		}
 		return nlJoin(
 				argCode,
 				putArgToHeapCode,
-				"push " + ExecuteVM.MEMSIZE + n.entry.offset,
+				"push " + (ExecuteVM.MEMSIZE + n.entry.offset),
 				"lw",
 				"lhp",
 				"sw", //scrive a indirizzo $hp il dispatch pointer recuperandolo
